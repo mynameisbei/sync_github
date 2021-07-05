@@ -49,28 +49,21 @@ impl Config {
     }
 
     fn update(path: &Path) {
-        let mut fns: Vec<Box<dyn Fn() -> ()>> = vec![];
-        let actions = vec![
-            vec!["reset", "--hard"],
-            vec!["clean", "-df"],
-            vec!["pull"],
-        ];
-
-        for action in actions {
-            let cb = Config::exec(path, "git", action);
-            fns.push(cb);
-        }
-
-        println!("\nupdate path: {}", path.to_str().unwrap());
-
-        for cb in fns {
-            cb();
-        }
+        [["reset", "--hard"], ["clean", "-df"], ["pull", "--ff"]]
+            .iter()
+            .map(|action| Config::exec(path, "git", action))
+            .enumerate()
+            .for_each(|(i, cb)| {
+                if i == 0 {
+                    println!("\nupdate path: {}", path.to_str().unwrap());
+                }
+                cb();
+            });
     }
 
-    fn exec(path: &Path, cmd: &str, args: Vec<&str>) -> Box<dyn Fn() -> ()> {
+    fn exec(path: &Path, cmd: &str, args: &[&str; 2]) -> Box<dyn Fn() -> ()> {
         let mut git = Command::new(cmd);
-        git.args(&args);
+        git.args(args);
         git.current_dir(path);
         let result = git.output();
         Box::new(move || {
